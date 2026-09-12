@@ -1,0 +1,12 @@
+import Database from 'better-sqlite3';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import 'dotenv/config';
+const here = path.dirname(fileURLToPath(import.meta.url));
+const dbPath = process.env.DB_PATH || path.join(here, '../data/dashboard.sqlite');
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+const db = new Database(dbPath);
+db.exec(fs.readFileSync(path.join(here, '../../database/schema.sql'), 'utf8'));
+db.close();
+console.log(`Database initialized at ${dbPath}`);
