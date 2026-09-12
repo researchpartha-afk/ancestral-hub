@@ -7,9 +7,11 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-// On Render, we use a writable path for the database
-const dbPath = process.env.DB_PATH || path.join(here, '../data/dashboard.sqlite');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// DATABASE IN ROOT
+const dbPath = path.join(__dirname, 'ancestral.sqlite');
 const db = new Database(dbPath);
 db.pragma('foreign_keys = ON');
 
@@ -26,7 +28,6 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(express.json());
 
-// Critical for Render: Health check
 app.get('/health', (req, res) => res.status(200).send('OK'));
 
 const now = () => new Date().toISOString();
@@ -34,9 +35,6 @@ const id = () => crypto.randomUUID();
 
 app.post('/api/devices', (req, res) => {
   const { uniqueId, gameId, name } = req.body;
-  if (gameId && !/^[A-Za-z0-9]+@[0-9]{2}$/.test(gameId)) {
-    return res.status(400).json({ error: 'SACRED_FORMAT_INVALID' });
-  }
   try {
     const existing = uniqueId ? db.prepare('SELECT * FROM devices WHERE unique_id=?').get(uniqueId) : null;
     if (existing) {
@@ -67,7 +65,8 @@ app.post('/api/scores', (req, res) => {
   res.status(201).json({ ok: true });
 });
 
-app.use(express.static(path.join(here, '../../dashboard')));
-app.get('*',(req,res)=>res.sendFile(path.join(here,'../../dashboard/index.html')));
+// SERVE DASHBOARD FROM ROOT
+app.use(express.static(path.join(__dirname, 'dashboard')));
+app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'dashboard/index.html')));
 
-app.listen(port, '0.0.0.0', () => console.log(`Server listening on port ${port}`));
+app.listen(port, '0.0.0.0', () => console.log(`Ancestral Hub live on ${port}`));
